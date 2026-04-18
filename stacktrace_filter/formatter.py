@@ -1,73 +1,74 @@
-"""Format parsed tracebacks with optional collapsing and ANSI highlighting."""
+"""Format parsed tracebacks for terminal output."""
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from .parser import Frame, Traceback
+from .config import FilterConfig, should_hide
+from .highlighter import highlight_line, highlight_exception_line
 
-RESET = "\033[0m"
-BOLD = "\033[1m"
-DIM = "\033[2m"
-RED = "\033[31m"
-YELLOW = "\033[33m"
-CYAN = "\033[36m"
-
-
-def _colorize(text: str, *codes: str) -> str:
-    return "".join(codes) + text + RESET
+_RESET = "\033[0m"
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
+_BLUE = "\033[34m"
+_RED = "\033[31m"
+_YELLOW = "\033[33m"
 
 
-def format_frame(frame: Frame, *, color: bool = True, dim: bool = False) -> str:
-    prefix = "  "
-    path_str = f'File "{frame.path}", line {frame.lineno}, in {frame.func}'
-    if color:
-        if dim:
-            path_str = _colorize(path_str, DIM)
-        else:
-            path_str = _colorize(f'File "{frame.path}"', CYAN) + \
-                       f', line ' + _colorize(str(frame.lineno), YELLOW) + \
-                       f', in ' + _colorize(frame.func, BOLD)
-    lines = [prefix + path_str]
-    if frame.code:
-        code_str = f"    {frame.code}"
-        if color and not dim:
-            code_str = _colorize(code_str, BOLD)
-        lines.append(code_str)
-    return "\n".join(lines)
+def _colorize(text: str, code: str, color: bool) -> str:
+    if not color:
+        return text
+    return f"{code}{text}{_RESET}"
+
+
+def flush_collapsed(count: int, label: str, color: bool) -> Optional[str]:
+    if count == 0:
+        return None
+    msg = f"  ... {count} {label} frame(s) collapsed ..."
+    return _colorize(msg, _DIM, color)
+
+
+def format_frame(frame: Frame, color: bool = True) -> List[str]:
+    """Return lines representing a single stack frame."""
+    lines = []
+    location = f'  File "{frame.filename}", line {frame.lineno}, in {frame.name}'
+    lines.append(_colorize(location, _BLUE, color))
+    if frame.line:
+        highlighted = highlight_line(f"    {frame.line}", color=color)
+        lines.append(highlighted)
+    return lines
 
 
 def format_traceback(
     tb: Traceback,
-    *,
-    collapse_stdlib: bool = True,
-    collapse_site_packages: bool = False,
+    config: Optional[FilterConfig] = None,
     color: bool = True,
 ) -> str:
-    output: List[str] = ["Traceback (most recent call last):"]
-    collapsed = 0
+    """Format a full Traceback object into a string ready for display."""
+    if config is None:
+        config = FilterConfig()
 
-    def flush_collapsed() -> None:
-        nonlocal collapsed
-        if collapsed:
-            msg = f"  ... ({collapsed} frame{'s' if collapsed > 1 else ''} collapsed)"
-            output.append(_colorize(msg, DIM) if color else msg)
-            collapsed = 0
+    output_lines: List[str] = []
+    output_lines.append(_colorize("Traceback (most recent call last):", _BOLD, color))
+
+    collapsed_count = 0
+    collapsed_label = config.collapse_label
 
     for frame in tb.frames:
-        should_collapse = (collapse_stdlib and frame.is_stdlib and not frame.is_site_package) or \
-                          (collapse_site_packages and frame.is_site_package)
-        if should_collapse:
-            collapsed += 1
+        if should_hide(frame, config):
+            collapsed_count += 1
         else:
-            flush_collapsed()
-            output.append(format_frame(frame, color=color, dim=False))
+            flushed = flush_collapsed(collapsed_count, collapsed_label, color)
+            if flushed:
+                output_lines.append(flushed)
+            collapsed_count = 0
+            output_lines.extend(format_frame(frame, color=color))
 
-    flush_collapsed()
+    flushed = flush_collapsed(collapsed_count, collapsed_label, color)
+    if flushed:
+        output_lines.append(flushed)
 
     if tb.exception:
-        exc_line = tb.exception
-        if tb.message:
-            exc_line += f": {tb.message}"
-        output.append(_colorize(exc_line, BOLD, RED) if color else exc_line)
+        output_lines.append(highlight_exception_line(tb.exception, color=color))
 
-    return "\n".join(output)
+    return "\n".join(output_lines)
