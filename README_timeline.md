@@ -41,13 +41,30 @@ stacktrace-timeline manifest.json
 cat manifest.json | stacktrace-timeline
 # disable colors
 stacktrace-timeline --no-color manifest.json
+# sort in descending (newest-first) order
+stacktrace-timeline --reverse manifest.json
 ```
 
 ## Output
 
-Entries are printed in ascending timestamp order:
+Entries are printed in ascending timestamp order (oldest first) by default:
 
 ```
 2024-06-01 09:30:00  RuntimeError: y
 2024-06-01 10:00:00 [job-1]  ValueError: x
 ```
+
+Use `--reverse` to print newest entries first:
+
+```
+2024-06-01 10:00:00 [job-1]  ValueError: x
+2024-06-01 09:30:00  RuntimeError: y
+```
+
+## Manifest Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `text` | yes | Raw traceback text to parse |
+| `timestamp` | yes | ISO 8601 datetime string |
+| `label` | no | Optional source label shown in brackets |
