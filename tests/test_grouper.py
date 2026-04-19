@@ -60,6 +60,15 @@ def test_group_tracebacks_ordered_desc():
     assert counts == sorted(counts, reverse=True)
 
 
+def test_group_tracebacks_representative_traceback():
+    """The representative traceback stored in each group should match the group's key."""
+    tbs = [_tb("ValueError", "bad"), _tb("ValueError", "bad"), _tb("TypeError", "x")]
+    groups = group_tracebacks(tbs)
+    for group in groups:
+        assert group.traceback.exc_type == group.exc_type
+        assert (group.traceback.exc_message or "").strip() == group.exc_message.strip()
+
+
 def test_format_groups_empty():
     out = format_groups([])
     assert "No tracebacks" in out
