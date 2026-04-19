@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_watchdog_parser()
     args = parser.parse_args(argv)
 
+    if args.poll_interval <= 0:
+        parser.error("--poll-interval must be a positive number")
+
     cfg = FilterConfig(
         hide_stdlib=args.hide_stdlib,
         hide_site_packages=args.hide_site_packages,
@@ -52,6 +55,9 @@ def main(argv: list[str] | None = None) -> None:
             poll_interval=args.poll_interval,
             color=not args.no_color,
         )
+    except FileNotFoundError:
+        print(f"error: file not found: {args.file}", file=sys.stderr)
+        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(0)
 
