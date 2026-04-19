@@ -64,6 +64,11 @@ def test_depth_score_partial():
     assert _depth_score(tb) == pytest.approx(0.5)
 
 
+def test_depth_score_zero_frames():
+    tb = _tb(frames=[])
+    assert _depth_score(tb) == 0.0
+
+
 def test_exc_type_score_critical():
     tb = _tb(exc_type="MemoryError")
     assert _exc_type_score(tb) == 1.0
@@ -84,6 +89,11 @@ def test_score_all_sorted_descending():
     tb_warn = _tb(exc_type="DeprecationWarning")
     results = score_all([tb_warn, tb_critical])
     assert results[0].score >= results[1].score
+
+
+def test_score_all_empty():
+    """score_all should return an empty list when given no tracebacks."""
+    assert score_all([]) == []
 
 
 def test_breakdown_keys_present():
