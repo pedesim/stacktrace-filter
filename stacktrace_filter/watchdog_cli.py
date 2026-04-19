@@ -58,6 +58,9 @@ def main(argv: list[str] | None = None) -> None:
     except FileNotFoundError:
         print(f"error: file not found: {args.file}", file=sys.stderr)
         sys.exit(1)
+    except PermissionError:
+        print(f"error: permission denied: {args.file}", file=sys.stderr)
+        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(0)
 
