@@ -71,5 +71,13 @@ def main(argv: Optional[List[str]] = None) -> None:
             sys.stdout.write("\n")
         printed.append(entry)
 
-    result = replay(args.archive, config=config, callback=_print_entry)
+    try:
+        result = replay(args.archive, config=config, callback=_print_entry)
+    except FileNotFoundError:
+        sys.stderr.write(f"error: archive file not found: {args.archive}\n")
+        sys.exit(1)
+    except OSError as exc:
+        sys.stderr.write(f"error: could not read archive: {exc}\n")
+        sys.exit(1)
+
     sys.stdout.write(f"Replayed {result.total} entries (skipped {result.skipped}).\n")
