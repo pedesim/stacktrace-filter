@@ -90,3 +90,22 @@ def test_main_fatal_traceback(tmp_path, capsys):
     data = json.loads(capsys.readouterr().out)
     assert data["fatal"] is True
     assert data["retryable"] is False
+
+
+def test_main_extra_retryable_flag(tmp_path, capsys):
+    """Extra --retryable patterns should promote matching tracebacks to retryable."""
+    tb_file = tmp_path / "tb.txt"
+    tb_file.write_text(_FATAL_TRACEBACK)
+    main([str(tb_file), "--json", "--retryable", "SystemExit"])
+    data = json.loads(capsys.readouterr().out)
+    assert data["retryable"] is True
+
+
+def test_main_extra_fatal_flag(tmp_path, capsys):
+    """Extra --fatal patterns should demote matching tracebacks to fatal/non-retryable."""
+    tb_file = tmp_path / "tb.txt"
+    tb_file.write_text(_TRACEBACK)
+    main([str(tb_file), "--json", "--fatal", "ConnectionError"])
+    data = json.loads(capsys.readouterr().out)
+    assert data["retryable"] is False
+    assert data["fatal"] is True
