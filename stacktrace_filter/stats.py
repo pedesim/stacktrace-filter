@@ -19,6 +19,13 @@ class TracebackStats:
     exception_type: str = ""
     exception_msg: str = ""
 
+    @property
+    def user_frame_ratio(self) -> float:
+        """Fraction of frames that are user code (0.0 if no frames)."""
+        if self.total_frames == 0:
+            return 0.0
+        return self.user_frames / self.total_frames
+
 
 def compute_stats(tb: Traceback, top_n: int = 5) -> TracebackStats:
     """Return a TracebackStats for the given Traceback."""
