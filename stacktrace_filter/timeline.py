@@ -25,11 +25,19 @@ class Timeline:
     def sorted_entries(self) -> List[TimestampedTraceback]:
         return sorted(self.entries, key=lambda e: e.timestamp)
 
+    def filter_by_label(self, label: str) -> "Timeline":
+        """Return a new Timeline containing only entries matching the given label."""
+        filtered = Timeline()
+        filtered.entries = [e for e in self.entries if e.label == label]
+        return filtered
+
 
 def build_timeline(tracebacks: List[Traceback], timestamps: List[datetime],
                    labels: Optional[List[str]] = None) -> Timeline:
     if len(tracebacks) != len(timestamps):
         raise ValueError("tracebacks and timestamps must have equal length")
+    if labels is not None and len(labels) != len(tracebacks):
+        raise ValueError("labels must have the same length as tracebacks")
     tl = Timeline()
     for i, (tb, ts) in enumerate(zip(tracebacks, timestamps)):
         label = labels[i] if labels else None
