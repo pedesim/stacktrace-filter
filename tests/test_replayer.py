@@ -85,3 +85,16 @@ def test_replay_empty_archive(tmp_path):
     archive_path = open(archive, "w").close()
     result = replay(archive)
     assert result.total == 0
+
+
+def test_replay_skipped_count_matches_filtered(tmp_path):
+    """Verify that skipped equals the number of entries not matching the filter label."""
+    archive = str(tmp_path / "arc.jsonl")
+    _write_archive(
+        archive,
+        [("keep", _tb()), ("drop", _tb()), ("drop", _tb()), ("keep", _tb())],
+    )
+    result = replay(archive, config=ReplayConfig(filter_label="keep"))
+    assert result.total == 2
+    assert result.skipped == 2
+    assert result.total + result.skipped == 4
